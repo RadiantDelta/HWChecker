@@ -23,7 +23,7 @@ public class CommandExecutor {
         File folder = new File(path);
         Logger logger = Logger.getLogger(CommandExecutor.class.getName());
         File output = new File("someplace");
-        ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/C", command).directory(new File(folder.getPath())).redirectOutput(output);
+        ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command).directory(new File(folder.getPath())).redirectOutput(output);
         builder.redirectErrorStream(true);
         Process process = builder.start();
         long pid = process.pid();

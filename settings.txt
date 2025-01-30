@@ -1,1 +1,1 @@
-C:\Program Files\Amazon Corretto\jdk21.0.4_7\bin
+/usr/lib/jvm/java-21-openjdk-amd64/bin

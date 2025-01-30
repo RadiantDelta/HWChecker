@@ -97,7 +97,7 @@ public class SettingsController implements Initializable {
         }
         String result = null;
         try {
-            result = CommandExecutor.execute("\"" + jdkPath + "\\javac\" -version", "C:\\", false);
+            result = CommandExecutor.execute("\"" + jdkPath + "\\javac\" -version", "/", false);
         } catch (IOException e) {
             Alert a = new Alert(Alert.AlertType.ERROR);
             a.setContentText(e.toString());
