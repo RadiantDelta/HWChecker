@@ -736,6 +736,13 @@ public class Launcher {
         File result = null;
         for (File fileEntry : folder.listFiles()) {
             if (fileEntry.isDirectory()) {
+                if (fileEntry.getName().equals(folderName)) {
+                    return fileEntry;
+                }
+            }
+        }
+        for (File fileEntry : folder.listFiles()) {
+            if (fileEntry.isDirectory()) {
                 if (fileEntry.getName().equalsIgnoreCase("h2")) {
                     continue;
                 }
