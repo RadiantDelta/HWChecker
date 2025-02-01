@@ -31,6 +31,8 @@ public class MainController implements Initializable {
     private Thread t;
     private Task<Void> task;
 
+    private boolean isLinux;
+
     @FXML
     private ScrollPane scrollPane;
     @FXML
@@ -57,6 +59,11 @@ public class MainController implements Initializable {
     private RadioButton radiobutton_maven;
     @FXML
     private RadioButton radio_button_use_my_h2_driver;
+
+
+    public boolean isLinux() {
+        return isLinux;
+    }
 
     public void setStatusText(String status) {
         statusText.setText(status);
@@ -138,7 +145,12 @@ public class MainController implements Initializable {
                     launchInfo.setTestsFolderPath(testsFolderPathField.getText());
                     button_launch_checker.setDisable(true);
                     button_interrupt.setDisable(false);
-                    Launcher.launchChecker(launchInfo);
+
+                    launchInfo.setLinux(isLinux);
+
+                    Launcher l = new Launcher();
+
+                    l.launchChecker(launchInfo);
                     return null;
                 }
             };
@@ -212,6 +224,8 @@ public class MainController implements Initializable {
     @FXML
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+
+        isLinux = true;
 
         Platform.runLater(() -> {
             button_launch_checker.setDisable(false);

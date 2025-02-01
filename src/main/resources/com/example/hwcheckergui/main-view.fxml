@@ -19,7 +19,7 @@
       </ScrollPane>
       <Button fx:id="button_interrupt" disable="true" layoutX="151.0" layoutY="138.0" mnemonicParsing="false" onAction="#onInterruptButtonClick" text="Прервать" />
       <Button fx:id="button_choose_base_folder_path" layoutX="24.0" layoutY="47.0" mnemonicParsing="false" onAction="#onChooseBaseFolderPathButtonClick" text="Путь к папке с Students, Tests, Restrictions" />
-      <TextField fx:id="baseFolderPathField" editable="false" layoutX="277.0" layoutY="46.0" prefHeight="26.0" prefWidth="433.0" />
+      <TextField fx:id="baseFolderPathField" editable="true" layoutX="277.0" layoutY="46.0" prefHeight="26.0" prefWidth="433.0" />
       <Button fx:id="button_choose_tests_folder_path" layoutX="24.0" layoutY="79.0" mnemonicParsing="false" onAction="#onChooseTestsFolderPathButtonClick" text="Путь к папке с Test1, Test2,..." />
       <TextField fx:id="testsFolderPathField" layoutX="203.0" layoutY="79.0" prefHeight="26.0" prefWidth="510.0" />
       <Button fx:id="button_clean_log" layoutX="251.0" layoutY="138.0" mnemonicParsing="false" onAction="#onCleanLogButtonClick" text="Очистить лог" />

@@ -1,5 +1,8 @@
 package com.example.hwcheckergui;
 
+import com.example.hwcheckergui.util.CommandExecutor;
+import com.example.hwcheckergui.util.UnixCommandExecutor;
+import com.example.hwcheckergui.util.WinCommandExecutor;
 import javafx.scene.control.TextArea;
 import javafx.scene.text.Text;
 
@@ -12,6 +15,20 @@ public class LaunchInfo {
     private int waitSeconds;
     private boolean isMaven;
     private boolean useMyH2Driver;
+    private boolean isLinux;
+
+
+    public String getSlash() {
+        return isLinux ? "/" : "\\";
+    }
+
+    public CommandExecutor getCe() {
+        return isLinux ? new UnixCommandExecutor() : new WinCommandExecutor();
+    }
+
+    public void setLinux(boolean linux) {
+        isLinux = linux;
+    }
 
     public boolean isMaven() {
         return isMaven;

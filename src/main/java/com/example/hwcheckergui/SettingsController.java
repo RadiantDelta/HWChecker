@@ -2,6 +2,8 @@ package com.example.hwcheckergui;
 
 import com.example.hwcheckergui.util.CommandExecutor;
 import com.example.hwcheckergui.util.SettingsUtils;
+import com.example.hwcheckergui.util.UnixCommandExecutor;
+import com.example.hwcheckergui.util.WinCommandExecutor;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
@@ -31,6 +33,21 @@ public class SettingsController implements Initializable {
     @FXML
     public void setMainController(MainController mainController) {
         this.mainController = mainController;
+        String result = null;
+        try {
+            CommandExecutor ce = mainController.isLinux() ? new UnixCommandExecutor() : new WinCommandExecutor();
+            String slash = mainController.isLinux() ? "/" : "\\";
+            result = ce.execute("\"" + jdkPathField.getText() + slash + "javac\" -version", slash,
+                    false);
+        } catch (IOException e) {
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            a.setContentText(e.toString());
+            a.show();
+        } catch (InterruptedException e) {
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            a.setContentText(e.toString());
+            a.show();
+        }
     }
 
     @FXML
@@ -95,17 +112,6 @@ public class SettingsController implements Initializable {
             a.setContentText(e.toString());
             a.show();
         }
-        String result = null;
-        try {
-            result = CommandExecutor.execute("\"" + jdkPath + "\\javac\" -version", "/", false);
-        } catch (IOException e) {
-            Alert a = new Alert(Alert.AlertType.ERROR);
-            a.setContentText(e.toString());
-            a.show();
-        } catch (InterruptedException e) {
-            Alert a = new Alert(Alert.AlertType.ERROR);
-            a.setContentText(e.toString());
-            a.show();
-        }
+
     }
 }

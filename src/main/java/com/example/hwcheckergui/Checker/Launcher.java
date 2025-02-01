@@ -40,23 +40,38 @@ public class Launcher {
     public static String javaCmd = "";
     public static final String endl = "\n";
 
-    public static void launchChecker(LaunchInfo launchInfo) throws IOException, InterruptedException {
+    private String slash;
+
+    private CommandExecutor ce;
+
+    private String removeSudo(String str) {
+        String toRemove = StringUtils.substringBetween(str,"[", ": ");
+        if (toRemove != null) {
+            str = StringUtils.remove(str, "[" + toRemove + ": ");
+        }
+        return str;
+    }
+
+    public void launchChecker(LaunchInfo launchInfo) throws IOException, InterruptedException {
+
+        slash = launchInfo.getSlash();
+
+        ce = launchInfo.getCe();
 
         boolean ifDoesNotExistUseMyH2Jar = launchInfo.isUseMyH2Driver();
 
-        CommandExecutor.setWaitSeconds(launchInfo.getWaitSeconds());
-        javacCmd = "\"" + launchInfo.getJdkBinPath() + "\\javac" + "\"";
-        javaCmd = "\"" + launchInfo.getJdkBinPath() + "\\java" + "\"";
-        String javacVersionCmd = CommandExecutor.execute("javac -version", launchInfo.getJdkBinPath(), false);
+        ce.setWaitSeconds(launchInfo.getWaitSeconds());
+        javacCmd = launchInfo.getJdkBinPath() + slash + "javac";
+        javaCmd =  launchInfo.getJdkBinPath() + slash + "java";
+        String javacVersionCmd = ce.execute("javac -version", launchInfo.getJdkBinPath(), false);
         String javacVersion = StringUtils.substringBetween(javacVersionCmd, "javac ", ".");
-        int hwNumber = 1;
 
         String hwFolderPathStr = launchInfo.getBaseFolderPath();
 
         boolean noHWFolders;
 
         String desiredHW = "";
-        String studentsFolder = hwFolderPathStr + "\\Students";
+        String studentsFolder = hwFolderPathStr + slash + "Students";
         String testsForHWFolder = launchInfo.getTestsFolderPath();
         if (new File(testsForHWFolder).getName().toUpperCase().contains("HW")) {
             noHWFolders = false;
@@ -68,9 +83,10 @@ public class Launcher {
         Platform.runLater(() -> launchInfo.addLog("Unarchived" + endl));
         File hwStudentsFolderPath = new File(studentsFolder);
         String students[] = hwStudentsFolderPath.list();
+        Arrays.sort(students);
 
         RestrictionChecker rc = new RestrictionChecker();
-        rc.setRestrictions(hwFolderPathStr + "\\Restrictions\\restriction.txt");
+        rc.setRestrictions(hwFolderPathStr + slash +"Restrictions" + slash + "restriction.txt");
         List<Report> reports = new ArrayList<>();
 
         AtomicInteger count = new AtomicInteger(1);
@@ -79,11 +95,11 @@ public class Launcher {
             Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.student") + " " + st + endl));
 
             Report report = new Report(st);
-            String studentFolder = studentsFolder + "\\" + st;
+            String studentFolder = studentsFolder + slash + st;
             String projectPath = null;
             File srcFolder = null;
             if (!noHWFolders) {
-                projectPath = studentFolder + "\\" + desiredHW;
+                projectPath = studentFolder + slash + desiredHW;
                 if (new File(projectPath).exists()) {
                     srcFolder = findFolder(new File(projectPath), "src");
                 }
@@ -97,7 +113,7 @@ public class Launcher {
                 report.setProjectIsPresent(false);
             }
             report.setTestsForHWFolder(testsForHWFolder);
-            report.setStudentFolder(hwStudentsFolderPath + "\\" + st);
+            report.setStudentFolder(hwStudentsFolderPath + slash + st);
             if (projectPath == null || srcFolder == null) {
                 Platform.runLater(() -> launchInfo.addLog("Project" + " " + Localization.getString("Console.Message.isMissing") + " or" + endl));
                 Platform.runLater(() -> launchInfo.addLog(st + " " + Localization.getString("Console.Message.projectHasNoSrcFolder")));
@@ -142,6 +158,7 @@ public class Launcher {
 
             // Пройти по папкам тестов. Для каждого теста...
             String tests[] = (new File(testsForHWFolder)).list();
+            Arrays.sort(tests);
             byte testNum = 1;
             int testAmount = tests.length;
             boolean showLogJavac = true;
@@ -152,7 +169,7 @@ public class Launcher {
 
             report.setMvn(launchInfo.isMaven());
             if (report.isMvn()) {
-                String targetPath = projectPath + "\\target";
+                String targetPath = projectPath + slash + "target";
                 if (new File(targetPath).exists()) {
                     DirDeleter.delete2(new File(targetPath));
                 }
@@ -173,7 +190,7 @@ public class Launcher {
             if (!report.isMvn()) {
                 ArrayList<String> sourcePaths = new ArrayList<>();
                 for (File f : javaFiles) {
-                    sourcePaths.add(f.getAbsolutePath().replace(projectPath + "\\", ""));
+                    sourcePaths.add(f.getAbsolutePath().replace(projectPath + slash, ""));
                 }
                 String sourcepaths = sourcePaths.stream().collect(Collectors.joining(";"));
                 String javaFilesLocalPaths = sourcePaths.stream().collect(Collectors.joining(" "));
@@ -186,9 +203,12 @@ public class Launcher {
                         mainJavaExists = true;
                         String jarLocalPath = "";
                         if (!jarFiles.isEmpty()) {
-                            for (File jf : jarFiles) {
-                                jarLocalPath += jf.getAbsolutePath().replace((projectPath + "\\"), "");
-                                jarLocalPath += ";";
+                            for (Iterator<File> it = jarFiles.iterator(); it.hasNext(); ) {
+                                File jf = it.next();
+                                jarLocalPath += jf.getAbsolutePath().replace((projectPath + slash), "");
+                                if (it.hasNext()) {
+                                    jarLocalPath += ";";
+                                }
                             }
                         }
 
@@ -201,7 +221,8 @@ public class Launcher {
                             Platform.runLater(() -> launchInfo.addLog("ON PATH: " + projectPathWrap[0] + endl));
                         }
 
-                        String cmdResult = CommandExecutor.execute(command, projectPath, showLogJavac);
+                        String cmdResult = ce.execute(command, projectPath, showLogJavac);
+                        cmdResult = removeSudo(cmdResult);
                         if (showLogJavac) {
                             String[] cmdResultWrap = { cmdResult };
                             Platform.runLater(() -> launchInfo.addLog(cmdResultWrap[0] + endl));
@@ -209,7 +230,8 @@ public class Launcher {
                         if (!cmdResult.equals("tooLongNoRespond")) {
                             if (cmdResult.contains("unmappable character")) {
                                 command = command.replace(CP1251, UTF8);
-                                cmdResult = CommandExecutor.execute(command, projectPath, showLogJavac);
+                                cmdResult = ce.execute(command, projectPath, showLogJavac);
+                                cmdResult = removeSudo(cmdResult);
                                 if (showLogJavac) {
                                     String[] projectPathWrap = { projectPath };
                                     String[] commandWrap = { command };
@@ -249,7 +271,7 @@ public class Launcher {
                 if (showLog) {
                     Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.endJavacMainJava") + endl));
                 }
-            } else {
+            } else { // MVN
                 for (File f : javaFiles) {
                     if (f.getName().equals("Main.java")) {
                         mainJavaExists = true;
@@ -265,7 +287,8 @@ public class Launcher {
                             Platform.runLater(() -> launchInfo.addLog("COMMAND " + commandWrap[0] + endl));
                             Platform.runLater(() -> launchInfo.addLog("ON PATH: " + projectPathWrap[0] + endl));
                         }
-                        String cmdResult = CommandExecutor.execute(command, projectPath, showLogJava);
+                        String cmdResult = ce.execute(command, projectPath, showLogJava);
+                        cmdResult = removeSudo(cmdResult);
                         if (!cmdResult.equals("tooLongNoRespond")) {
                             if (fullMvnBuildLog) {
                                 Platform.runLater(() -> launchInfo.addLog("<cmdResutl>" + endl));
@@ -304,11 +327,12 @@ public class Launcher {
                 for (String test : tests) {
                     TestInfo testInfo = new TestInfo(test);
                     if (showTestlog) {
-                        String[] strWrap = { "\n\nTEST #" + testNum++ + "/" + testAmount + "\n" + projectPath };
+                        String[] strWrap = { endl + endl + "TEST #" + testNum++ + "/" + testAmount + endl +
+                                projectPath };
                         Platform.runLater(() -> launchInfo.addLog(strWrap[0] + endl));
                     }
-                    String inputTest = testsForHWFolder + "\\" + test + "\\" + "INPUT";
-                    String outputTest = testsForHWFolder + "\\" + test + "\\" + "OUTPUT";
+                    String inputTest = testsForHWFolder + slash + test + slash + "INPUT";
+                    String outputTest = testsForHWFolder + slash +  test + slash + "OUTPUT";
                     if (!(new File(inputTest).exists())) {
                         testInfo.setTestInputExist(false);
                         Platform.runLater(() -> launchInfo.addLog("Test INPUT Folder does NOT exist" + endl));
@@ -340,7 +364,7 @@ public class Launcher {
                         Platform.runLater(() -> launchInfo.addLog("Before put input files" + endl));
                         for (File f : toChange) {
                             Platform.runLater(() -> launchInfo.addLog("Before put input file " + f.getAbsolutePath() + endl));
-                            Files.write(new File(projectPath + "\\" + f.getName()).toPath(), Files.readAllBytes(f.toPath()));
+                            Files.write(new File(projectPath + slash +  f.getName()).toPath(), Files.readAllBytes(f.toPath()));
                             Platform.runLater(() -> launchInfo.addLog("After put input file " + f.getAbsolutePath() + endl));
                         }
                         Platform.runLater(() -> launchInfo.addLog("After put input files" + endl));
@@ -373,9 +397,12 @@ public class Launcher {
                                 if (f.getName().equals("Main.class")) {
                                     String jarLocalPath = "";
                                     if (!jarFiles.isEmpty()) {
-                                        for (File jf : jarFiles) {
-                                            jarLocalPath += jf.getAbsolutePath().replace((projectPath + "\\"), "");
-                                            jarLocalPath += ";";
+                                        for (Iterator<File> it = jarFiles.iterator(); it.hasNext(); ) {
+                                            File jf = it.next();
+                                            jarLocalPath += jf.getAbsolutePath().replace((projectPath + slash), "");
+                                            if (it.hasNext()) {
+                                                jarLocalPath += ";";
+                                            }
                                         }
                                     }
                                     // GENERATE JAVA COMMAND
@@ -386,7 +413,8 @@ public class Launcher {
                                         Platform.runLater(() -> launchInfo.addLog("COMMAND " + commandWrap[0] + endl));
                                         Platform.runLater(() -> launchInfo.addLog("ON PATH: " + projectPathWrap[0] + endl));
                                     }
-                                    String cmdResult = CommandExecutor.execute(command, projectPath, showLogJava);
+                                    String cmdResult = ce.execute(command, projectPath, showLogJava);
+                                    cmdResult = removeSudo(cmdResult);
                                     if (cmdResult.equals("tooLongNoRespond")) {
                                         testInfo.setTooLongNoRespond(true);
                                         if (showLogJava) {
@@ -411,7 +439,8 @@ public class Launcher {
                                     Platform.runLater(() -> launchInfo.addLog("COMMAND " + commandWrap[0] + endl));
                                     Platform.runLater(() -> launchInfo.addLog("ON PATH: " + projectPathWrap[0] + endl));
                                 }
-                                String cmdResult = CommandExecutor.execute(command, projectPath, showLogJava);
+                                String cmdResult = ce.execute(command, projectPath, showLogJava);
+                                cmdResult = removeSudo(cmdResult);
                                 if (cmdResult.equals("tooLongNoRespond")) {
                                     testInfo.setTooLongNoRespond(true);
                                     if (showLogJava) {
@@ -425,7 +454,9 @@ public class Launcher {
                     }
 
                     if (showLog) {
-                        Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.checkingTestResults") + endl));
+                        Platform.runLater(() ->
+                                launchInfo.addLog(Localization.getString("Console.Message.checkingTestResults") +
+                                        endl));
                     }
                     createTestResults(outputFiles, testInfo, projectPath, launchInfo, showLog);
                     List<TestInfo> testResults = report.getTestsResults();
@@ -444,7 +475,7 @@ public class Launcher {
             reports.add(report);
         }
 
-        Platform.runLater(() -> launchInfo.addLog("REPORTS\n\n" + endl));
+        Platform.runLater(() -> launchInfo.addLog("REPORTS" + endl + endl + endl));
         String generatedDocxPath = DocGenerator.generate(reports, launchInfo);
         Platform.runLater(() -> launchInfo.getStatus().setText("Completed"));
         try {
@@ -455,22 +486,25 @@ public class Launcher {
             ioe.printStackTrace();
         }
         for (Report r : reports) {
-            Platform.runLater(() -> launchInfo.addLog(r.getReport() + "\n" + endl));
+            Platform.runLater(() -> launchInfo.addLog(r.getReport() + endl + endl));
         }
     }
 
-    private static void createTestResults(File[] outputFiles, TestInfo testInfo, String projectPath, LaunchInfo launchInfo, boolean showLog) {
+    private static void createTestResults(File[] outputFiles, TestInfo testInfo, String projectPath,
+                                          LaunchInfo launchInfo, boolean showLog) {
         List<File> toCompareWith = new ArrayList<>(Arrays.asList(outputFiles));
         for (File f : toCompareWith) {
             if (showLog) {
-                Platform.runLater(
-                        () -> launchInfo.addLog(Localization.getString("Console.Message.resultForOutputFile") + " - " + f.getName() + " : " + endl));
+                Platform.runLater(() -> launchInfo.addLog(
+                        Localization.getString("Console.Message.resultForOutputFile") + " - " + f.getName() + " : "
+                                + endl));
             }
             File findResult = null;
             findResult = findFile(new File(projectPath), f.getName(), false);
             if ((findResult == null)) {
                 if (showLog) {
-                    Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.outputFileIsNotPresentAfterTest") + endl));
+                    Platform.runLater(() -> launchInfo.addLog(
+                            Localization.getString("Console.Message.outputFileIsNotPresentAfterTest") + endl));
                 }
             } else {
                 List<File> wrongOutputFiles = testInfo.getWrongOutputFiles();
@@ -478,11 +512,13 @@ public class Launcher {
                 boolean areSame = areFilesSame(findResult, f);
                 if (areSame) {
                     if (showLog) {
-                        Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.outputFileHasMetExpectations") + endl));
+                        Platform.runLater(() -> launchInfo.addLog(
+                                Localization.getString("Console.Message.outputFileHasMetExpectations") + endl));
                     }
                 } else {
                     if (showLog) {
-                        Platform.runLater(() -> launchInfo.addLog(Localization.getString("Console.Message.outputFileHasNotMetExpectations") + endl));
+                        Platform.runLater(() -> launchInfo.addLog(
+                                Localization.getString("Console.Message.outputFileHasNotMetExpectations") + endl));
                     }
                     testInfo.setNotSameFilePresent(true);
                     wrongOutputFiles.add(findResult);
@@ -491,7 +527,8 @@ public class Launcher {
                 Path source = Paths.get(findResult.getAbsolutePath());
                 try {
                     String ext = getFileExt(findResult.getName());
-                    Files.move(source, source.resolveSibling(findResult.getName().replace(ext, "") + testInfo.getTestName() + ext),
+                    Files.move(source, source.resolveSibling(findResult.getName().replace(ext, "") +
+                                    testInfo.getTestName() + ext),
                             StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -540,7 +577,8 @@ public class Launcher {
 
     public static boolean areFilesSame(File fileToCheck, File expectedFile) {
         boolean areFilesEqual = true;
-        try (FileReader fr1 = new FileReader(fileToCheck.getAbsolutePath()); FileReader fr2 = new FileReader(expectedFile.getAbsolutePath())) {
+        try (FileReader fr1 = new FileReader(fileToCheck.getAbsolutePath());
+             FileReader fr2 = new FileReader(expectedFile.getAbsolutePath())) {
             int char1, char2;
             while (true) {
                 char1 = fr1.read();
@@ -561,24 +599,28 @@ public class Launcher {
         return areFilesEqual;
     }
 
-    public static String genJavaCommand(File f, String projectPath, String jarLocalPath, LaunchInfo launchInfo, final boolean showLogJava) {
+    public String genJavaCommand(File f, String projectPath, String jarLocalPath, LaunchInfo launchInfo,
+                                 final boolean showLogJava) {
         String packName = getPackage(new File(f.getAbsolutePath().replace(CLASS_SUFFIX, JAVA_SUFFIX)));
-        String packNameClassName = (packName + (packName.equals("") ? "" : ".") + f.getName()).replace(CLASS_SUFFIX, "");
-        String packNameClassNameSlash = packNameClassName.replace(".", "\\");
-        String pathWherePackIsStored = (f.getAbsolutePath()).replace(packNameClassNameSlash + CLASS_SUFFIX, "");
-        String localpathWherePackIsStored = pathWherePackIsStored.replace((projectPath + "\\"), "");
+        String packNameClassName = (packName + (packName.equals("") ? "" : ".") +
+                f.getName()).replace(CLASS_SUFFIX, "");
+        String packNameClassNameSlash = packNameClassName.replace(".", slash);
+        String pathWherePackIsStored = (f.getAbsolutePath()).replace(packNameClassNameSlash + CLASS_SUFFIX,
+                "");
+        String localpathWherePackIsStored = pathWherePackIsStored.replace((projectPath + slash), "");
 
         if (showLogJava) {
             Platform.runLater(() -> launchInfo.addLog("packName: " + packName + endl));
             Platform.runLater(() -> launchInfo.addLog("packNameClassName: " + packNameClassName + endl));
             Platform.runLater(() -> launchInfo.addLog("packNameClassNameSlash: " + packNameClassNameSlash + endl));
-            Platform.runLater(() -> launchInfo.addLog("localpathWherePackIsStored: " + localpathWherePackIsStored + endl));
+            Platform.runLater(() -> launchInfo.addLog("localpathWherePackIsStored: " + localpathWherePackIsStored +
+                    endl));
         }
 
-        String result = f.getAbsolutePath().replace(projectPath + "\\", "").replace(CLASS_SUFFIX, "").replace(localpathWherePackIsStored, "")
-                .replace("\\", "/");
-        String combinedClassesAndLibsStr = localpathWherePackIsStored + (localpathWherePackIsStored.equals("") ? "" : ";") + jarLocalPath
-                + ";src\\main\\java;";
+        String result = f.getAbsolutePath().replace(projectPath + slash, "").replace(CLASS_SUFFIX, "").replace(localpathWherePackIsStored, "")
+                .replace(slash, "/");
+        String combinedClassesAndLibsStr = localpathWherePackIsStored + (localpathWherePackIsStored.equals("") ? "" : ":") + jarLocalPath
+                + ":src" + slash + "main" + slash + "java:";
         String command = javaCmd + " ";
 
         if (!(combinedClassesAndLibsStr.isBlank() || combinedClassesAndLibsStr.isEmpty())) {
@@ -589,16 +631,16 @@ public class Launcher {
         return command;
     }
 
-    public static String genJavacCommand(File f, String projectPath, String jarLocalPath, String javacVersion, LaunchInfo launchInfo,
+    public String genJavacCommand(File f, String projectPath, String jarLocalPath, String javacVersion, LaunchInfo launchInfo,
             String javaFilesLocalPaths, final boolean showLogJavac) {
 
         String packName = getPackage(f);
         String packNameClassName = (packName + (packName.equals("") ? "" : ".") + f.getName()).replace(".java", "");
-        String packNameClassNameSlash = packNameClassName.replace(".", "\\");
+        String packNameClassNameSlash = packNameClassName.replace(".",  slash);
         String pathWherePackIsStored = (f.getAbsolutePath()).replace(packNameClassNameSlash + ".java", "");
-        String localpathWherePackIsStored = pathWherePackIsStored.replace((projectPath + "\\"), "");
-        String result = f.getAbsolutePath().replace(projectPath + "\\", "").replace(packNameClassNameSlash, packNameClassName);
-        result = f.getAbsolutePath().replace(projectPath + "\\", "");
+        String localpathWherePackIsStored = pathWherePackIsStored.replace((projectPath + slash), "");
+        String result = f.getAbsolutePath().replace(projectPath + slash, "").replace(packNameClassNameSlash, packNameClassName);
+        result = f.getAbsolutePath().replace(projectPath + slash, "");
         String currentEncoding = CP1251;
         String command = javacCmd + " -target " + javacVersion + " -encoding " + currentEncoding;
         if (localpathWherePackIsStored != "") {
@@ -611,8 +653,9 @@ public class Launcher {
 
         if (showLogJavac) {
             String[] localpathWherePackIsStoredWrap = { localpathWherePackIsStored };
-            Platform.runLater(() -> launchInfo.addLog("PACKAGE: " + packName + "\nPACKAGE+CLASS: " + packNameClassName + "\nPACKAGE\\: "
-                    + packNameClassNameSlash + endl + "pathWherePackIsStored: " + pathWherePackIsStored + endl + "localpathWherePackIsStored: "
+            Platform.runLater(() -> launchInfo.addLog("PACKAGE: " + packName + endl + "PACKAGE+CLASS: " +
+                    packNameClassName + endl + "PACKAGE\\: " + packNameClassNameSlash + endl +
+                    "pathWherePackIsStored: " + pathWherePackIsStored + endl + "localpathWherePackIsStored: "
                     + localpathWherePackIsStoredWrap[0] + endl + "f.getAbsolutePath(): " + f.getAbsolutePath()));
         }
 
@@ -623,9 +666,9 @@ public class Launcher {
         return "set \"JAVA_HOME=" + jdkBinPath.substring(0, jdkBinPath.length() - 4) + "\"" + " && " + "mvn package";
     }
 
-    private static String genMvnJavaJarDependenciesCommand(File f, File projectFolder, String javaCmd) {
+    private String genMvnJavaJarDependenciesCommand(File f, File projectFolder, String javaCmd) {
         String classNameWithPackage = getClassNameWithPackage(f);
-        String targetPath = projectFolder.getAbsolutePath() + "\\target";
+        String targetPath = projectFolder.getAbsolutePath() + slash + "target";
         String[] targetFiles = new File(targetPath).list();
         String jarFile = "";
         for (String el : targetFiles) {
@@ -689,7 +732,7 @@ public class Launcher {
         return result;
     }
 
-    public static void findFilesWithEnding(File folder, List<File> javaFiles, String ending, boolean alreadyInSrc) {
+    public void findFilesWithEnding(File folder, List<File> javaFiles, String ending, boolean alreadyInSrc) {
         for (File fileEntry : folder.listFiles()) {
             if (fileEntry.getName().equals("src") && alreadyInSrc) { // if nested projects - leave
                 return;
@@ -698,7 +741,7 @@ public class Launcher {
         for (File fileEntry : folder.listFiles()) {
             if (fileEntry.isDirectory()) {
                 if (fileEntry.getName().equalsIgnoreCase("h2")) {// skipping library files but include h2*.jar
-                    findFilesWithEnding(new File(fileEntry.getAbsolutePath() + "\\bin"), javaFiles, ending, true);
+                    findFilesWithEnding(new File(fileEntry.getAbsolutePath() + slash + "bin"), javaFiles, ending, true);
                     continue;
                 }
                 if (fileEntry.getName().equalsIgnoreCase("h2-2.2.222")) {
@@ -724,8 +767,9 @@ public class Launcher {
             ArrayList<String> usedRestrictionConstructs = new ArrayList<>();
             boolean constructionsAreCorrect = rc.constructionsCorrect(fileEntry, usedRestrictionConstructs, javaFiles);
             if (!constructionsAreCorrect) {
-                String constructionsList = String.join(";\n", usedRestrictionConstructs);
-                String message = fileEntry.getAbsolutePath() + " has following restricted Java constructions:\n" + constructionsList;
+                String constructionsList = String.join(";" + endl, usedRestrictionConstructs);
+                String message = fileEntry.getAbsolutePath() + " has following restricted Java constructions:" + endl +
+                        constructionsList;
                 violations.add(message);
             }
         }
@@ -751,13 +795,13 @@ public class Launcher {
         return filesWereChanged;
     }
 
-    private static void unzipProjects(String studentsFolder, String desiredHW, boolean noHWFolders, LaunchInfo launchInfo)
+    private void unzipProjects(String studentsFolder, String desiredHW, boolean noHWFolders, LaunchInfo launchInfo)
             throws IOException, InterruptedException {
         File hwStudentsFolderPath = new File(studentsFolder);
         String students[] = hwStudentsFolderPath.list();
         String desiredArchive = "";
         for (String st : students) {
-            String studentFolder = studentsFolder + "\\" + st;
+            String studentFolder = studentsFolder + slash + st;
             List<File> studentFiles = Arrays.asList((new File(studentFolder)).listFiles());
             if (studentFiles.stream().anyMatch(x -> x.isDirectory())) {
                 if (studentFiles.stream().anyMatch(x -> isArchive(x.getName()))) {
@@ -786,10 +830,10 @@ public class Launcher {
                 }
                 if (desiredArchiveExists) {
                     if (studentFiles.stream().anyMatch(desiredHW::equals)) {// удаляем распакованный ранее zip
-                        DirDeleter.deleteDirectory(new File(studentFolder + "\\" + desiredHW));
+                        DirDeleter.deleteDirectory(new File(studentFolder + slash +  desiredHW));
                     }
-                    new File(studentFolder + "\\" + desiredHW).mkdirs();
-                    Unzipper.unzipFile(Path.of(studentFolder + "\\" + desiredArchive));
+                    new File(studentFolder + slash + desiredHW).mkdirs();
+                    Unzipper.unzipFile(Path.of(studentFolder + slash + desiredArchive));
                 }
             } else if (noHWFolders) {// единственный массив в папке студента
                 if (studentFiles.size() != 0) {
@@ -802,26 +846,26 @@ public class Launcher {
                     }
                     String unarchivedFolder = archive.replace(SEVEN_Z_EXT, "").replace(RAR_EXT, "").replace(ZIP_EXT, "");
                     if (studentFiles.stream().anyMatch(unarchivedFolder::equals)) {// удаляем распакованный ранее архив
-                        DirDeleter.delete2(new File(studentFolder + "\\" + unarchivedFolder));
+                        DirDeleter.delete2(new File(studentFolder + slash + unarchivedFolder));
                     }
-                    String archiveFilePath = studentFolder + "\\" + archive;
+                    String archiveFilePath = studentFolder + slash + archive;
                     if (archive.endsWith(RAR_EXT)) {
                         Unzipper.unRar(new File(archiveFilePath));
                     }
                     if (archive.endsWith(ZIP_EXT)) {
 
-                        if (new File(studentFolder + "\\" + unarchivedFolder).exists()) {
-                            DirDeleter.delete2(new File(studentFolder + "\\" + unarchivedFolder));
+                        if (new File(studentFolder + slash + unarchivedFolder).exists()) {
+                            DirDeleter.delete2(new File(studentFolder + slash + unarchivedFolder));
                         }
-                        Files.createDirectory(new File(studentFolder + "\\" + unarchivedFolder).toPath());
+                        Files.createDirectory(new File(studentFolder + slash + unarchivedFolder).toPath());
                         Platform.runLater(() -> launchInfo.addLog("Unarchiving ZIP: " + archiveFilePath + endl));
                         Unzipper.unzipFile(Path.of(archiveFilePath));
                     }
                     if (archive.endsWith(SEVEN_Z_EXT)) {
-                        if (new File(studentFolder + "\\" + unarchivedFolder).exists()) {
-                            DirDeleter.delete(new File(studentFolder + "\\" + unarchivedFolder));
+                        if (new File(studentFolder + slash + unarchivedFolder).exists()) {
+                            DirDeleter.delete(new File(studentFolder + slash + unarchivedFolder));
                         }
-                        Files.createDirectory(new File(studentFolder + "\\" + unarchivedFolder).toPath());
+                        Files.createDirectory(new File(studentFolder + slash + unarchivedFolder).toPath());
                         try {
                             Unzipper.unSevenZipFile(new File(archiveFilePath));
                         } catch (IOException e) {
