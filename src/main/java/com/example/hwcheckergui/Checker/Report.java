@@ -14,6 +14,7 @@ public class Report {
     private String javacFailureMsg;
     private String mvnFailureMsg;
 
+    private boolean multipleMainJavaExists;
     private boolean mainJavaExists;
     private boolean javacSuccess;
     private boolean mvnSuccess;
@@ -116,25 +117,28 @@ public class Report {
             }
             docReport += endl + "|||------------------- РЕЗУЛЬТАТЫ КОМПИЛЯЦИИ (javac/mvn package) -------------------|||" + endl;
 
-            if (mainJavaExists) {
-                if (!isMvn) {// значит javac
-                    if (javacTimeout) {
-                        docReport += endl + "javac" + " " + "Процесс слишком долго выполнялся." + endl;
-                    } else { // javac завершился
-                        docReport += endl + (javacSuccess ? "javac выполнена успешно" : "javac ОШИБКА" + endl + divider + javacFailureMsg + divider);
+            if (!multipleMainJavaExists) {
+                if (mainJavaExists) {
+                    if (!isMvn) {// значит javac
+                        if (javacTimeout) {
+                            docReport += endl + "javac" + " " + "Процесс слишком долго выполнялся." + endl;
+                        } else { // javac завершился
+                            docReport += endl + (javacSuccess ? "javac выполнена успешно" : "javac ОШИБКА" + endl + divider + javacFailureMsg + divider);
+                        }
+                    } else {
+                        if (mvnTimeout) {
+                            docReport += endl + "mvn package" + " " + "Процесс слишком долго выполнялся." + endl;
+                        } else {
+                            docReport += endl + (mvnSuccess ? "mvn package выполнена успешно" : "mvn package ОШИБКА" + endl + mvnFailureMsg) + endl
+                                    + divider + endl;
+                        }
                     }
                 } else {
-                    if (mvnTimeout) {
-                        docReport += endl + "mvn package" + " " + "Процесс слишком долго выполнялся." + endl;
-                    } else {
-                        docReport += endl + (mvnSuccess ? "mvn package выполнена успешно" : "mvn package ОШИБКА" + endl + mvnFailureMsg) + endl
-                                + divider + endl;
-                    }
+                    docReport += endl + "Main.java отсутствует в проекте" + endl;
                 }
             } else {
-                docReport += endl + "Main.java отсутствует в проекте" + endl;
+                docReport += endl + "В проекте присутствует больше одного Main.java" + endl;
             }
-
         }
 
         return docReport;
@@ -254,5 +258,13 @@ public class Report {
 
     public void setProjectIsPresent(boolean projectisPresent) {
         this.projectIsPresent = projectisPresent;
+    }
+
+    public boolean isMultipleMainJavaExists() {
+        return multipleMainJavaExists;
+    }
+
+    public void setMultipleMainJavaExists(boolean multipleMainJavaExists) {
+        this.multipleMainJavaExists = multipleMainJavaExists;
     }
 }

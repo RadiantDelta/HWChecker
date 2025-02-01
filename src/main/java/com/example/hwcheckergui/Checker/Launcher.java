@@ -186,6 +186,25 @@ public class Launcher {
             classFilesDelete.stream().forEach(el -> el.delete());
             Platform.runLater(() -> launchInfo.addLog("After delete files with ending .class" + endl));
 
+            boolean multipleMainJavaExists = false;
+            byte mainJavaCount = 0;
+            for (File f : javaFiles) {
+                if (f.getName().equals("Main.java")) {
+                    mainJavaCount++;
+                    if (mainJavaCount > 1) {
+                        multipleMainJavaExists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (multipleMainJavaExists) {
+                report.setMultipleMainJavaExists(true);
+                Platform.runLater(() -> launchInfo.addLog("В проекте присутствует больше одного Main.java" + endl));
+                reports.add(report);
+                continue;
+            }
+
             boolean mainJavaExists = false;
             if (!report.isMvn()) {
                 ArrayList<String> sourcePaths = new ArrayList<>();
