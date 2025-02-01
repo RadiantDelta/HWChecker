@@ -14,6 +14,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -225,7 +226,9 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        isLinux = true;
+//        isLinux = true;
+
+        isLinux = SystemUtils.IS_OS_LINUX;
 
         Platform.runLater(() -> {
             button_launch_checker.setDisable(false);

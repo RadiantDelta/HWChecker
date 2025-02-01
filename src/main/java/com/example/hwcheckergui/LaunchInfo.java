@@ -18,6 +18,9 @@ public class LaunchInfo {
     private boolean isLinux;
 
 
+    public String getSeparator() {
+        return isLinux ? ":" : ";";
+    }
     public String getSlash() {
         return isLinux ? "/" : "\\";
     }

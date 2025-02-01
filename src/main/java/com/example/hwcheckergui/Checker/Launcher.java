@@ -61,9 +61,9 @@ public class Launcher {
         boolean ifDoesNotExistUseMyH2Jar = launchInfo.isUseMyH2Driver();
 
         ce.setWaitSeconds(launchInfo.getWaitSeconds());
-        javacCmd = launchInfo.getJdkBinPath() + slash + "javac";
-        javaCmd =  launchInfo.getJdkBinPath() + slash + "java";
-        String javacVersionCmd = ce.execute("javac -version", launchInfo.getJdkBinPath(), false);
+        javacCmd = "\"" + launchInfo.getJdkBinPath() + slash + "javac" + "\"";
+        javaCmd = "\"" + launchInfo.getJdkBinPath() + slash + "java" + "\"";
+        String javacVersionCmd = ce.execute(javacCmd + " -version", launchInfo.getJdkBinPath(), false);
         String javacVersion = StringUtils.substringBetween(javacVersionCmd, "javac ", ".");
 
         String hwFolderPathStr = launchInfo.getBaseFolderPath();
@@ -619,8 +619,8 @@ public class Launcher {
 
         String result = f.getAbsolutePath().replace(projectPath + slash, "").replace(CLASS_SUFFIX, "").replace(localpathWherePackIsStored, "")
                 .replace(slash, "/");
-        String combinedClassesAndLibsStr = localpathWherePackIsStored + (localpathWherePackIsStored.equals("") ? "" : ":") + jarLocalPath
-                + ":src" + slash + "main" + slash + "java:";
+        String combinedClassesAndLibsStr = localpathWherePackIsStored + (localpathWherePackIsStored.equals("") ? "" : launchInfo.getSeparator()) + jarLocalPath
+                + launchInfo.getSeparator() + "src" + slash + "main" + slash + "java:";
         String command = javaCmd + " ";
 
         if (!(combinedClassesAndLibsStr.isBlank() || combinedClassesAndLibsStr.isEmpty())) {
