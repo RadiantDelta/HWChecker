@@ -10,6 +10,14 @@ public class UnixCommandExecutor implements CommandExecutor {
 
     private int waitSeconds;
 
+    private String suPassword;
+
+    public UnixCommandExecutor() {}
+
+    public UnixCommandExecutor(String suPassword){
+        this.suPassword = suPassword;
+    }
+
     public void setWaitSeconds(int sec) {
         waitSeconds = sec;
     }
@@ -17,7 +25,6 @@ public class UnixCommandExecutor implements CommandExecutor {
     public String execute(String commands, String path, boolean showLog) throws IOException, InterruptedException {
         File output = new File("someplace");
 
-        String suPassword = "password";
         String sudo = "echo " + suPassword + " | sudo -S sh -c ";
         String commandBuilder =  sudo + "\"" + commands  + "\"";
 
@@ -26,7 +33,7 @@ public class UnixCommandExecutor implements CommandExecutor {
                 .redirectOutput(output);
         builder.redirectErrorStream(true);
 
-        System.out.println("COMand: " + commandBuilder);
+//        System.out.println("COMand: " + commandBuilder);
 
         Process process = builder.start();
         long pid = process.pid();

@@ -148,6 +148,10 @@ public class MainController implements Initializable {
                     button_interrupt.setDisable(false);
 
                     launchInfo.setLinux(isLinux);
+                    if (isLinux) {
+                        String pass = SettingsUtils.getPass();
+                        launchInfo.setSuPassword(pass);
+                    }
 
                     Launcher l = new Launcher();
 

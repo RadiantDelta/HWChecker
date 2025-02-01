@@ -10,6 +10,14 @@ public class SettingsUtils {
         return line;
     }
 
+    public static String getPass() throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader("su.txt"));
+        String line = br.readLine();
+        br.close();
+        return line;
+    }
+
+
     public static void write(String str) throws IOException {
         Writer fileWriter = new FileWriter("settings.txt");
         fileWriter.write(str);
