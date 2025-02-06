@@ -16,12 +16,6 @@ public class LaunchInfo {
     private boolean isMaven;
     private boolean useMyH2Driver;
     private boolean isLinux;
-    private String suPassword;
-
-
-    public void setSuPassword(String pass) {
-        suPassword = pass;
-    }
 
     public String getSeparator() {
         return isLinux ? ":" : ";";
@@ -31,7 +25,7 @@ public class LaunchInfo {
     }
 
     public CommandExecutor getCe() {
-        return isLinux ? new UnixCommandExecutor(suPassword) : new WinCommandExecutor();
+        return isLinux ? new UnixCommandExecutor() : new WinCommandExecutor();
     }
 
     public void setLinux(boolean linux) {
